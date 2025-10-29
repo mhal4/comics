@@ -31,7 +31,7 @@ nav a {
 
 .tag-panel {
     position: fixed;
-    left: -200px; /* Скрыта по умолчанию */
+    left: -200px; /* Теперь панель изначально скрыта */
     top: 0;
     width: 200px;
     height: 100%;
@@ -40,10 +40,11 @@ nav a {
     transition: left 0.3s ease;
     overflow-y: auto;
     z-index: 1000;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3); /* Добавим тень для визуального отделения */
 }
 
 .tag-panel.active {
-    left: 0;
+    left: 0; /* Панель появляется при добавлении класса 'active' */
 }
 
 .tag-panel ul {
@@ -65,6 +66,8 @@ nav a {
 main {
     padding: 1em;
     margin-top: 2em;
+    /* Добавим отступ слева, чтобы контент не "уходил" под панель при её открытии */
+    /* transition не работает для padding/margin, но можно учесть при открытии */
 }
 
 .playlist-item,

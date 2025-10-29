@@ -93,8 +93,10 @@ function renderPlaylists() {
       .map((cn) => {
         const comic = comicsData[cn];
         if (comic) {
-          const imgName = comic.pics > 1 ? `${cn}_1.jpg` : `${cn}.jpg`;
-          return `<img src="comics/${imgName}" alt="${cn}" class="comic-image" style="max-width: 100px; height: auto;">`;
+          // Исправлено: начинаем с 0
+          const imgName =
+            comic.pics > 1 ? `pictures/${cn}_0.jpg` : `pictures/${cn}.jpg`;
+          return `<img src="pictures/${imgName}" alt="pictures/${cn}" class="comic-image" style="max-width: 100px; height: auto;">`;
         }
         return "";
       })
@@ -124,7 +126,7 @@ function renderRandomTagGroups() {
 
   container.innerHTML = "";
   const shuffledTags = Array.from(allTags).sort(() => 0.5 - Math.random());
-  const selectedTags = shuffledTags.slice(0, 3); // Выбираем 3 случайных тега
+  const selectedTags = shuffledTags.slice(0, 3);
 
   selectedTags.forEach((tag) => {
     const comicsWithTag = Object.values(comicsData).filter((c) =>
@@ -137,9 +139,12 @@ function renderRandomTagGroups() {
       const comicPreviews = comicsWithTag
         .slice(0, 2)
         .map((comic) => {
+          // Исправлено: начинаем с 0
           const imgName =
-            comic.pics > 1 ? `${comic.name}_1.jpg` : `${comic.name}.jpg`;
-          return `<img src="comics/${imgName}" alt="${comic.name}" class="comic-image" style="max-width: 80px; height: auto;">`;
+            comic.pics > 1
+              ? `pictures/${comic.name}_0.jpg`
+              : `pictures/${comic.name}.jpg`;
+          return `<img src="pictures/${imgName}" alt="pictures/${comic.name}" class="comic-image" style="max-width: 80px; height: auto;">`;
         })
         .join("");
       groupDiv.innerHTML += `<div>${comicPreviews}</div>`;
@@ -165,9 +170,11 @@ function renderComicPage() {
         const comicDiv = document.createElement("div");
         comicDiv.className = "comic-item";
         let images = "";
-        for (let i = 1; i <= comic.pics; i++) {
-          const imgName = comic.pics > 1 ? `${cn}_${i}.jpg` : `${cn}.jpg`;
-          images += `<img src="comics/${imgName}" alt="${cn} - ${i}" class="comic-image">`;
+        // Исправлено: начинаем с 0 и идем до pics-1
+        for (let i = 0; i < comic.pics; i++) {
+          const imgName =
+            comic.pics > 1 ? `pictures/${cn}_${i}.jpg` : `pictures/${cn}.jpg`;
+          images += `<img src="pictures/${imgName}" alt="pictures/${cn} - ${i}" class="comic-image">`;
         }
         comicDiv.innerHTML = `<h3>${comic.name}</h3>${images}`;
         contentDiv.appendChild(comicDiv);
@@ -179,10 +186,13 @@ function renderComicPage() {
     const comicDiv = document.createElement("div");
     comicDiv.className = "comic-item";
     let images = "";
-    for (let i = 1; i <= comic.pics; i++) {
+    // Исправлено: начинаем с 0 и идем до pics-1
+    for (let i = 0; i < comic.pics; i++) {
       const imgName =
-        comic.pics > 1 ? `${comicName}_${i}.jpg` : `${comicName}.jpg`;
-      images += `<img src="comics/${imgName}" alt="${comic.name} - ${i}" class="comic-image">`;
+        comic.pics > 1
+          ? `pictures/${comicName}_${i}.jpg`
+          : `pictures/${comicName}.jpg`;
+      images += `<img src="pictures/${imgName}" alt="pictures/${comic.name} - ${i}" class="comic-image">`;
     }
     comicDiv.innerHTML = images;
     contentDiv.appendChild(comicDiv);
@@ -206,10 +216,13 @@ function renderTagPage() {
     comicsWithTag.forEach((comic) => {
       const comicDiv = document.createElement("div");
       comicDiv.className = "comic-item";
+      // Исправлено: начинаем с 0
       const imgName =
-        comic.pics > 1 ? `${comic.name}_1.jpg` : `${comic.name}.jpg`;
+        comic.pics > 1
+          ? `pictures/${comic.name}_0.jpg`
+          : `pictures/${comic.name}.jpg`;
       comicDiv.innerHTML = `<h3><a href="comics.html?comic=${encodeURIComponent(comic.name)}">${comic.name}</a></h3>
-                                  <img src="comics/${imgName}" alt="${comic.name}" class="comic-image">`;
+                                  <img src="pictures/${imgName}" alt="pictures/${comic.name}" class="comic-image">`;
       contentDiv.appendChild(comicDiv);
     });
   } else {
