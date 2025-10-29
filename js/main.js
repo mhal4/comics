@@ -174,7 +174,7 @@ function renderComicPage() {
         for (let i = 0; i < comic.pics; i++) {
           const imgName =
             comic.pics > 1 ? `pictures/${cn}_${i}.jpg` : `pictures/${cn}.jpg`;
-          images += `<img src="pictures/${imgName}" alt="pictures/${cn}_${i}" class="comic-image">`;
+          images += `<img src="pictures/${imgName}_${i}" alt="pictures/${cn}" class="comic-image">`;
         }
         comicDiv.innerHTML = `<h3>${comic.name}</h3>${images}`;
         contentDiv.appendChild(comicDiv);
@@ -192,7 +192,7 @@ function renderComicPage() {
         comic.pics > 1
           ? `pictures/${comicName}_${i}.jpg`
           : `pictures/${comicName}.jpg`;
-      images += `<img src="pictures/${imgName}" alt="pictures/${comic.name}_${i}" class="comic-image">`;
+      images += `<img src="pictures/${imgName}" alt="pictures/${comic.name}" class="comic-image">`;
     }
     comicDiv.innerHTML = images;
     contentDiv.appendChild(comicDiv);
