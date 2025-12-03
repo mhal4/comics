@@ -1,5 +1,2 @@
 flask
-zipfile
-xml.etree
-shutil
-werkzeug.utils
+werkzeug
