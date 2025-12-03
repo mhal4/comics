@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>16tons</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #f4f4f8;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #222;
+        }
+        .tags {
+            text-align: center;
+            color: #666;
+            margin-bottom: 25px;
+        }
+        .gallery {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+            padding: 20px;
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: scale(1.02);
+        }
+        img {
+            width: 100%;
+            border-radius: 10px;
+            display: block;
+        }
+        .back {
+            display: inline-block;
+            margin: 30px auto 0;
+            padding: 12px 20px;
+            background: #0066cc;
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back:hover {
+            background: #004c99;
+        }
+        .center {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>16tons</h1>
+    <div class="tags">Теги: song thesis песня защита</div>
+    <div class="gallery">
+
+        <div class="card">
+            <img src="/static/images/16tons/16tons_0.jpg" alt="16tons_0.jpg">
+        </div>
+
+        <div class="card">
+            <img src="/static/images/16tons/16tons_1.jpg" alt="16tons_1.jpg">
+        </div>
+
+        <div class="card">
+            <img src="/static/images/16tons/16tons_2.jpg" alt="16tons_2.jpg">
+        </div>
+
+        <div class="card">
+            <img src="/static/images/16tons/16tons_3.jpg" alt="16tons_3.jpg">
+        </div>
+
+        <div class="card">
+            <img src="/static/images/16tons/16tons_4.jpg" alt="16tons_4.jpg">
+        </div>
+
+        <div class="card">
+            <img src="/static/images/16tons/16tons_5.jpg" alt="16tons_5.jpg">
+        </div>
+
+    </div>
+    <div class="center">
+        <a class="back" href="/comics">← Назад к списку комиксов</a>
+    </div>
+</body>
+</html>
