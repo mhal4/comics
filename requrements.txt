@@ -1,5 +1,4 @@
 flask
-os
 zipfile
 xml.etree
 shutil
