@@ -1,3 +1,5 @@
+# app.py
+
 import os
 import shutil
 import xml.etree.ElementTree as ET
@@ -117,12 +119,78 @@ def comics():
             imgs = sorted(os.listdir(img_dir))
             if imgs:
                 preview = url_for("static", filename=f"images/{name}/{imgs[0]}")
-                comics_list.append({"name": name, "preview": preview})
+                # Попробуем прочитать теги из XML для списка
+                tags = "N/A"  # Заглушка, если не найдём
+                xml_path = os.path.join(UPLOAD_FOLDER, "data.xml")
+                if os.path.exists(xml_path):
+                    try:
+                        tree = ET.parse(xml_path)
+                        root = tree.getroot()
+                        for node in root.findall("comix"):
+                            if node.get("name") == name:
+                                tags = node.get("tags", "N/A")
+                                break
+                    except:
+                        pass  # Если XML нет или сломан, теги не покажем
+                comics_list.append({"name": name, "preview": preview, "tags": tags})
 
     # Сортировка по имени
     comics_list.sort(key=lambda x: x["name"])
 
     return render_template("comics.html", comics=comics_list)
+
+
+# --- НОВЫЙ маршрут для поиска по тегам ---
+@app.route("/search")
+def search_comics():
+    """Поиск комиксов по тегу"""
+    query = request.args.get("tag", "").strip().lower()
+    if not query:
+        # Если тег не указан, можно вернуть пустой список или всё
+        # Лучше вернуть на главную или показать сообщение
+        return render_template(
+            "comics.html",
+            comics=[],
+            search_query=query,
+            message="Пожалуйста, введите тег для поиска.",
+        )
+
+    comics_list = []
+    for name in os.listdir(IMAGE_ROOT):
+        img_dir = os.path.join(IMAGE_ROOT, name)
+        if os.path.isdir(img_dir):
+            imgs = sorted(os.listdir(img_dir))
+            if imgs:
+                preview = url_for("static", filename=f"images/{name}/{imgs[0]}")
+                # Попробуем прочитать теги из XML для списка
+                tags = "N/A"  # Заглушка, если не найдём
+                xml_path = os.path.join(UPLOAD_FOLDER, "data.xml")
+                if os.path.exists(xml_path):
+                    try:
+                        tree = ET.parse(xml_path)
+                        root = tree.getroot()
+                        for node in root.findall("comix"):
+                            if node.get("name") == name:
+                                tags = node.get("tags", "N/A")
+                                break
+                    except:
+                        pass  # Если XML нет или сломан, теги не покажем
+
+                # Фильтрация: добавляем комикс, если тег найден
+                if query in tags.lower():
+                    comics_list.append({"name": name, "preview": preview, "tags": tags})
+
+    # Сортировка по имени
+    comics_list.sort(key=lambda x: x["name"])
+
+    if not comics_list:
+        message = f"Комиксы с тегом '{query}' не найдены."
+    else:
+        message = f"Результаты поиска по тегу '{query}':"
+
+    return render_template(
+        "comics.html", comics=comics_list, search_query=query, message=message
+    )
 
 
 # Новый маршрут для отображения конкретного комикса
@@ -133,21 +201,7 @@ def show_comic(name):
     if not os.path.exists(comic_dir):
         return "Комикс не найден.", 404
 
-    # Считываем XML для получения тегов (или хранить в JSON, как выше)
-    # Для простоты, попробуем получить теги из названия папки или предположим, что их нет
-    # Лучше загружать XML в память при старте или читать каждый раз
-    # Давайте считать, что XML доступен только при загрузке, и теги теряются
-    # Или, читаем XML каждый раз при открытии списка/комикса
-    # Для этого нужно хранить XML где-то или читать из uploads (ненадёжно)
-
-    # Попробуем читать теги каждый раз из XML (нужно хранить XML тоже)
-    # Лучше загрузить XML в память при старте, но это всё равно исчезнет после перезапуска
-
-    # Для упрощения, просто читаем папку и генерируем HTML
-    imgs = sorted(os.listdir(comic_dir))
-    img_urls = [url_for("static", filename=f"images/{name}/{img}") for img in imgs]
-
-    # Попробуем прочитать теги из XML (предположим, он лежит в uploads)
+    # Считываем XML для получения тегов
     tags = "N/A"  # Заглушка, если не найдём
     xml_path = os.path.join(
         UPLOAD_FOLDER, "data.xml"
@@ -163,10 +217,15 @@ def show_comic(name):
         except:
             pass  # Если XML нет или сломан, теги не покажем
 
+    imgs = sorted(os.listdir(comic_dir))
+    img_urls = [url_for("static", filename=f"images/{name}/{img}") for img in imgs]
+
     return render_template("show_comic.html", name=name, img_urls=img_urls, tags=tags)
 
 
+# Удаляем блок if __name__ == "__main__": или оставляем для локальной отладки
 if __name__ == "__main__":
-    # Убираем app.run из основного потока
-    # Render запустит приложение через Gunicorn
-    pass
+    import os
+
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)

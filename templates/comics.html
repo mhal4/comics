@@ -12,8 +12,39 @@
             }
             h1 {
                 text-align: center;
-                margin-bottom: 30px;
+                margin-bottom: 10px; /* Уменьшили отступ */
                 color: #222;
+            }
+            .search-container {
+                text-align: center;
+                margin-bottom: 30px; /* Отступ под поиском */
+            }
+            .search-container input[type="text"] {
+                padding: 10px;
+                width: 300px;
+                max-width: 90%;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                font-size: 1rem;
+            }
+            .search-container button {
+                padding: 10px 15px;
+                margin-left: 10px;
+                background: #0066cc;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                font-size: 1rem;
+            }
+            .search-container button:hover {
+                background: #004c99;
+            }
+            .message {
+                text-align: center;
+                margin-top: 20px;
+                color: #666;
+                font-style: italic;
             }
             .grid {
                 display: grid;
@@ -44,6 +75,14 @@
                 font-size: 1.2rem;
                 color: #222;
             }
+            .card p.tags {
+                margin: 5px 10px;
+                font-size: 0.85rem;
+                color: #666;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
             a {
                 text-decoration: none;
                 color: inherit;
@@ -53,9 +92,28 @@
     <body>
         <h1>Выберите комикс</h1>
 
+        <!-- Новый блок поиска -->
+        <div class="search-container">
+            <form action="{{ url_for('search_comics') }}" method="get">
+                <input
+                    type="text"
+                    name="tag"
+                    placeholder="Поиск по тегу..."
+                    value="{{ search_query or '' }}"
+                />
+                <button type="submit">Найти</button>
+            </form>
+        </div>
+
+        <!-- Отображение сообщения о результатах поиска -->
+        {% if message %}
+        <p class="message">{{ message }}</p>
+        {% endif %}
+
         <div class="grid">
             {% for comic in comics %}
             <a href="{{ url_for('show_comic', name=comic.name) }}">
+                <!-- Исправлено -->
                 <div class="card">
                     {% if comic.preview %}
                     <img src="{{ comic.preview }}" alt="{{ comic.name }}" />
@@ -73,6 +131,9 @@
                     </div>
                     {% endif %}
                     <h2>{{ comic.name }}</h2>
+                    {% if comic.tags and comic.tags != "N/A" %}
+                    <p class="tags">{{ comic.tags }}</p>
+                    {% endif %}
                 </div>
             </a>
             {% endfor %}
