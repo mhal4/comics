@@ -76,13 +76,19 @@ def parse_comics(xml_path):
     try:
         tree = ET.parse(xml_path)
         root = tree.getroot()
-        for node in root.findall("comix"):
+        for node in root.findall("comic"):  # Используем 'comic' вместо 'comix'
             name = node.get("name")
+            name_rus = node.get("name_rus", name)  # Если name_rus нет, используем name
             pics = int(node.get("pics", 0))
             tags = node.get("tags", "")
-            comics[name] = {"name": name, "pics": pics, "tags": tags}
+            comics[name] = {
+                "name": name,
+                "name_rus": name_rus,
+                "pics": pics,
+                "tags": tags,
+            }  # Добавили name_rus
     except Exception as e:
-        print(f"Ошибка при парсинге комиксов {xml_path}: {e}")  # Логируем ошибку
+        print(f"Ошибка при парсинге комиксов {xml_path}: {e}")
         pass
     return comics
 
@@ -189,19 +195,40 @@ def comics():
     for playlist_name, content_names in playlists_data.items():
         playlist_dir = os.path.join(IMAGE_ROOT, playlist_name)
         if os.path.exists(playlist_dir):
-            # Превью берём из первого изображения в папке плейлиста
-            imgs = sorted(
-                [
+            # --- НАЧАЛО ИЗМЕНЕНИЯ ---
+            # Превью берём из первого изображения, связанного с первым комиксом в плейлисте
+            preview = None
+            if content_names:
+                first_comic_name = content_names[0]
+                # Ищем файлы, начинающиеся с имени первого комикса
+                comic_imgs = [
                     f
                     for f in os.listdir(playlist_dir)
-                    if f.lower().endswith((".jpg", ".jpeg", ".png", ".gif"))
+                    if f.lower().startswith(first_comic_name.lower())
+                    and f.lower().endswith((".jpg", ".jpeg", ".png", ".gif"))
                 ]
-            )
-            preview = (
-                url_for("static", filename=f"images/{playlist_name}/{imgs[0]}")
-                if imgs
-                else None
-            )
+                sorted_comic_imgs = sorted(comic_imgs)
+                if sorted_comic_imgs:
+                    preview = url_for(
+                        "static",
+                        filename=f"images/{playlist_name}/{sorted_comic_imgs[0]}",
+                    )
+            # Если не нашли по имени первого комикса, используем первое изображение в папке (старое поведение)
+            if not preview:
+                imgs = sorted(
+                    [
+                        f
+                        for f in os.listdir(playlist_dir)
+                        if f.lower().endswith((".jpg", ".jpeg", ".png", ".gif"))
+                    ]
+                )
+                preview = (
+                    url_for("static", filename=f"images/{playlist_name}/{imgs[0]}")
+                    if imgs
+                    else None
+                )
+            # --- КОНЕЦ ИЗМЕНЕНИЯ ---
+
             # Пытаемся получить теги для первого комикса в плейлисте
             tags = "N/A"
             if content_names:
@@ -220,67 +247,14 @@ def comics():
     )
 
 
-@app.route("/comics/<playlist_name>")
-def show_playlist(playlist_name):
-    """Отображение содержимого конкретного плейлиста"""
-    if playlist_name not in playlists_data:
-        return "Плейлист не найден.", 404
-
-    playlist_dir = os.path.join(IMAGE_ROOT, playlist_name)
-    if not os.path.exists(playlist_dir):
-        return "Папка плейлиста не найдена.", 404
-
-    content_names = playlists_data[playlist_name]
-    content_list = []
-    for content_name in content_names:
-        # Пытаемся найти изображение, начинающееся с имени контента
-        content_imgs = [
-            f
-            for f in os.listdir(playlist_dir)
-            if f.lower().startswith(content_name.lower())
-            and f.lower().endswith((".jpg", ".jpeg", ".png", ".gif"))
-        ]
-        sorted_content_imgs = sorted(content_imgs)
-        preview = (
-            url_for(
-                "static", filename=f"images/{playlist_name}/{sorted_content_imgs[0]}"
-            )
-            if sorted_content_imgs
-            else None
-        )
-
-        # Если не нашли по имени, используем первое изображение в папке (старое поведение)
-        if not preview:
-            imgs = sorted(
-                [
-                    f
-                    for f in os.listdir(playlist_dir)
-                    if f.lower().endswith((".jpg", ".jpeg", ".png", ".gif"))
-                ]
-            )
-            preview = (
-                url_for("static", filename=f"images/{playlist_name}/{imgs[0]}")
-                if imgs
-                else None
-            )
-
-        # Получаем теги из глобального comics_data
-        tags = "N/A"
-        if content_name in comics_data:
-            tags = comics_data[content_name].get("tags", "N/A")
-        content_list.append({"name": content_name, "preview": preview, "tags": tags})
-
-    return render_template(
-        "playlist.html", playlist_name=playlist_name, contents=content_list
-    )
-
-
-# --- НОВЫЙ маршрут для поиска по тегам и плейлистам ---
+# --- НОВЫЙ маршрут для поиска по тегам, плейлистам и названиям ---
 @app.route("/search")
 def search_comics():
-    """Поиск комиксов по тегу или плейлисту"""
+    """Поиск комиксов по тегу, названию или плейлисту"""
     query = request.args.get("q", "").strip().lower()
-    search_type = request.args.get("type", "all")  # 'tag', 'playlist', 'all'
+    search_type = request.args.get(
+        "type", "all"
+    )  # 'tag', 'playlist', 'comic_name', 'all'
 
     if not query:
         return render_template(
@@ -301,18 +275,38 @@ def search_comics():
             if query in playlist_name.lower():
                 playlist_dir = os.path.join(IMAGE_ROOT, playlist_name)
                 if os.path.exists(playlist_dir):
-                    imgs = sorted(
-                        [
+                    # Превью для плейлиста - первое изображение первого комикса
+                    preview = None
+                    if content_names:
+                        first_comic_name = content_names[0]
+                        comic_imgs = [
                             f
                             for f in os.listdir(playlist_dir)
-                            if f.lower().endswith((".jpg", ".jpeg", ".png", ".gif"))
+                            if f.lower().startswith(first_comic_name.lower())
+                            and f.lower().endswith((".jpg", ".jpeg", ".png", ".gif"))
                         ]
-                    )
-                    preview = (
-                        url_for("static", filename=f"images/{playlist_name}/{imgs[0]}")
-                        if imgs
-                        else None
-                    )
+                        sorted_comic_imgs = sorted(comic_imgs)
+                        if sorted_comic_imgs:
+                            preview = url_for(
+                                "static",
+                                filename=f"images/{playlist_name}/{sorted_comic_imgs[0]}",
+                            )
+                    if not preview:
+                        imgs = sorted(
+                            [
+                                f
+                                for f in os.listdir(playlist_dir)
+                                if f.lower().endswith((".jpg", ".jpeg", ".png", ".gif"))
+                            ]
+                        )
+                        preview = (
+                            url_for(
+                                "static", filename=f"images/{playlist_name}/{imgs[0]}"
+                            )
+                            if imgs
+                            else None
+                        )
+
                     tags = "N/A"
                     if content_names:
                         first_comic_name = content_names[0]
@@ -321,7 +315,7 @@ def search_comics():
                     found_playlists.append(
                         {"name": playlist_name, "preview": preview, "tags": tags}
                     )
-                break  # Нашли плейлист, можно остановиться, если ищем только по плейлистам
+                # break # Убираем break, чтобы находить все совпадающие плейлисты
 
     if search_type in ["all", "tag"]:
         # Поиск по тегам в комиксах
@@ -332,50 +326,134 @@ def search_comics():
                     if comic_name in content_names:
                         playlist_dir = os.path.join(IMAGE_ROOT, playlist_name)
                         if os.path.exists(playlist_dir):
-                            imgs = sorted(
-                                [
-                                    f
-                                    for f in os.listdir(playlist_dir)
-                                    if f.lower().endswith(
-                                        (".jpg", ".jpeg", ".png", ".gif")
-                                    )
-                                ]
-                            )
+                            # Превью для комикса в поиске - первое изображение, связанное с ним
+                            content_imgs = [
+                                f
+                                for f in os.listdir(playlist_dir)
+                                if f.lower().startswith(comic_name.lower())
+                                and f.lower().endswith(
+                                    (".jpg", ".jpeg", ".png", ".gif")
+                                )
+                            ]
+                            sorted_content_imgs = sorted(content_imgs)
                             preview = (
                                 url_for(
                                     "static",
-                                    filename=f"images/{playlist_name}/{imgs[0]}",
+                                    filename=f"images/{playlist_name}/{sorted_content_imgs[0]}",
                                 )
-                                if imgs
+                                if sorted_content_imgs
                                 else None
                             )
+                            if not preview:
+                                imgs = sorted(
+                                    [
+                                        f
+                                        for f in os.listdir(playlist_dir)
+                                        if f.lower().endswith(
+                                            (".jpg", ".jpeg", ".png", ".gif")
+                                        )
+                                    ]
+                                )
+                                preview = (
+                                    url_for(
+                                        "static",
+                                        filename=f"images/{playlist_name}/{imgs[0]}",
+                                    )
+                                    if imgs
+                                    else None
+                                )
+
                             found_comics.append(
                                 {
                                     "name": comic_name,
+                                    "display_name": comic_info.get(
+                                        "name_rus", comic_name
+                                    ),
                                     "playlist": playlist_name,
                                     "preview": preview,
                                     "tags": comic_info.get("tags"),
                                 }
                             )
-                        break  # Комикс может быть в нескольких плейлистах, покажем первый найденный
+                        # break # Комикс может быть в нескольких плейлистах, покажем все вхождения
+
+    if search_type in ["all", "comic_name"]:
+        # Поиск по названию комикса (name или name_rus)
+        for comic_name, comic_info in comics_data.items():
+            # Ищем в оригинальном имени и в name_rus
+            if (
+                query in comic_name.lower()
+                or query in comic_info.get("name_rus", "").lower()
+            ):
+                # Найти, в каких плейлистах находится этот комикс
+                for playlist_name, content_names in playlists_data.items():
+                    if comic_name in content_names:
+                        playlist_dir = os.path.join(IMAGE_ROOT, playlist_name)
+                        if os.path.exists(playlist_dir):
+                            # Превью для комикса в поиске - первое изображение, связанное с ним
+                            content_imgs = [
+                                f
+                                for f in os.listdir(playlist_dir)
+                                if f.lower().startswith(comic_name.lower())
+                                and f.lower().endswith(
+                                    (".jpg", ".jpeg", ".png", ".gif")
+                                )
+                            ]
+                            sorted_content_imgs = sorted(content_imgs)
+                            preview = (
+                                url_for(
+                                    "static",
+                                    filename=f"images/{playlist_name}/{sorted_content_imgs[0]}",
+                                )
+                                if sorted_content_imgs
+                                else None
+                            )
+                            if not preview:
+                                imgs = sorted(
+                                    [
+                                        f
+                                        for f in os.listdir(playlist_dir)
+                                        if f.lower().endswith(
+                                            (".jpg", ".jpeg", ".png", ".gif")
+                                        )
+                                    ]
+                                )
+                                preview = (
+                                    url_for(
+                                        "static",
+                                        filename=f"images/{playlist_name}/{imgs[0]}",
+                                    )
+                                    if imgs
+                                    else None
+                                )
+
+                            found_comics.append(
+                                {
+                                    "name": comic_name,
+                                    "display_name": comic_info.get(
+                                        "name_rus", comic_name
+                                    ),
+                                    "playlist": playlist_name,
+                                    "preview": preview,
+                                    "tags": comic_info.get("tags"),
+                                }
+                            )
+                        # break # Комикс может быть в нескольких плейлистах, покажем все вхождения
 
     # Сортировка результатов
     found_playlists.sort(key=lambda x: x["name"])
-    found_comics.sort(key=lambda x: x["name"])
+    found_comics.sort(
+        key=lambda x: x["display_name"]
+    )  # Сортируем по отображаемому имени
 
-    # Объединяем результаты или показываем отдельно, в зависимости от поиска
-    # Для простоты, покажем плейлисты, если они найдены, иначе комиксы
-    # Или покажем всё вместе
-    combined_results = found_playlists + found_comics
+    # Объединяем результаты, убирая дубликаты (по имени комикса и плейлисту)
+    seen_comics = set()
+    unique_found_comics = []
+    for c in found_comics:
+        identifier = (c["name"], c["playlist"])
+        if identifier not in seen_comics:
+            unique_found_comics.append(c)
+            seen_comics.add(identifier)
 
-    if not combined_results:
-        message = f"Ничего не найдено по запросу '{query}'."
-    else:
-        message = f"Результаты поиска по запросу '{query}':"
-
-    # Возвращаем результаты в comics.html, указывая view_mode='search'
-    # comics.html должен уметь отображать как плейлисты, так и отдельные комиксы
-    # Мы передадим список, где каждый элемент будет иметь тип (playlist или comic)
     processed_results = []
     for p in found_playlists:
         processed_results.append(
@@ -386,16 +464,22 @@ def search_comics():
                 "tags": p["tags"],
             }
         )
-    for c in found_comics:
+    for c in unique_found_comics:
         processed_results.append(
             {
                 "type": "comic",
                 "name": c["name"],
+                "display_name": c["display_name"],
                 "playlist": c["playlist"],
                 "preview": c["preview"],
                 "tags": c["tags"],
             }
         )
+
+    if not processed_results:
+        message = f"Ничего не найдено по запросу '{query}'."
+    else:
+        message = f"Результаты поиска по запросу '{query}' (тип: {search_type}):"
 
     return render_template(
         "comics.html",
@@ -407,7 +491,6 @@ def search_comics():
     )
 
 
-# Новый маршрут для отображения конкретного комикса (content) внутри плейлиста
 # Новый маршрут для отображения конкретного комикса (content) внутри плейлиста
 @app.route("/comics/<playlist_name>/<content_name>")
 def show_comic_content(playlist_name, content_name):
@@ -423,18 +506,15 @@ def show_comic_content(playlist_name, content_name):
     if not os.path.exists(playlist_dir):
         return "Папка плейлиста не найдена.", 404
 
-    # Получаем теги из глобального comics_data
+    # Получаем теги и name_rus из глобального comics_data
     tags = "N/A"
-    if (
-        content_name in comics_data
-    ):  # <-- Проверьте, что content_name совпадает с именем в data.xml
-        tags = comics_data[content_name].get(
-            "tags", "N/A"
-        )  # <-- Убедитесь, что ключ "tags" правильный
-    else:
-        print(
-            f"DEBUG: comic '{content_name}' not found in comics_data for show_comic_content"
-        )  # Временный дебаг
+    display_name = content_name  # Имя по умолчанию, если не найдено в comics_data
+    if content_name in comics_data:
+        comic_info = comics_data[content_name]
+        tags = comic_info.get("tags", "N/A")
+        display_name = comic_info.get(
+            "name_rus", content_name
+        )  # Используем name_rus, если есть
 
     # Считываем изображения из папки плейлиста
     imgs = sorted(
@@ -449,7 +529,7 @@ def show_comic_content(playlist_name, content_name):
         url_for("static", filename=f"images/{playlist_name}/{img}") for img in imgs
     ]
 
-    # Если не нашли файлов по имени, покажем все
+    # Если не нашли файлов по имени, покажем все (на всякий случай)
     if not imgs:
         imgs = sorted(
             [
@@ -462,10 +542,10 @@ def show_comic_content(playlist_name, content_name):
             url_for("static", filename=f"images/{playlist_name}/{img}") for img in imgs
         ]
 
-    # Передаём playlist_name в шаблон
+    # Передаём display_name (name_rus или name) в шаблон
     return render_template(
         "show_comic.html",
-        name=content_name,
+        name=display_name,
         img_urls=img_urls,
         tags=tags,
         playlist_name=playlist_name,

@@ -1,3 +1,4 @@
+<!-- templates/comics.html -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -109,11 +110,12 @@
 <!-- Новый блок поиска -->
 <div class="search-container">
     <form action="{{ url_for('search_comics') }}" method="get">
-        <input type="text" name="q" placeholder="Поиск по тегу или плейлисту..." value="{{ search_query or '' }}">
+        <input type="text" name="q" placeholder="Поиск по тегу, плейлисту или комиксу..." value="{{ search_query or '' }}">
         <select name="type">
             <option value="all" {% if not request.args.get('type') or request.args.get('type') == 'all' %}selected{% endif %}>Везде</option>
             <option value="tag" {% if request.args.get('type') == 'tag' %}selected{% endif %}>По тегам</option>
             <option value="playlist" {% if request.args.get('type') == 'playlist' %}selected{% endif %}>По плейлистам</option>
+            <option value="comic_name" {% if request.args.get('type') == 'comic_name' %}selected{% endif %}>По названию комикса</option>
         </select>
         <button type="submit">Найти</button>
     </form>
@@ -154,7 +156,7 @@
                     {% else %}
                         <div style="height:200px;background:#ccc;display:flex;align-items:center;justify-content:center;">Нет превью</div>
                     {% endif %}
-                    <h2>{{ item.name }}</h2>
+                    <h2>{% if item.type == 'comic' %}{{ item.display_name }}{% else %}{{ item.name }}{% endif %}</h2> <!-- Изменено -->
                     {% if item.tags and item.tags != "N/A" %}
                         <p class="tags">{{ item.tags }}</p>
                     {% endif %}
