@@ -491,6 +491,76 @@ def search_comics():
     )
 
 
+@app.route("/comics/<playlist_name>")
+def show_playlist(playlist_name):
+    """Отображение содержимого конкретного плейлиста"""
+    if playlist_name not in playlists_data:
+        return "Плейлист не найден.", 404
+
+    playlist_dir = os.path.join(IMAGE_ROOT, playlist_name)
+    if not os.path.exists(playlist_dir):
+        return "Папка плейлиста не найдена.", 404
+
+    content_names = playlists_data[playlist_name]
+    content_list = []
+    for content_name in content_names:
+        # --- НАЧАЛО ИЗМЕНЕНИЯ ---
+        # Превью берём из первого изображения, связанного с этим комиксом
+        content_imgs = [
+            f
+            for f in os.listdir(playlist_dir)
+            if f.lower().startswith(content_name.lower())
+            and f.lower().endswith((".jpg", ".jpeg", ".png", ".gif"))
+        ]
+        sorted_content_imgs = sorted(content_imgs)
+        preview = (
+            url_for(
+                "static", filename=f"images/{playlist_name}/{sorted_content_imgs[0]}"
+            )
+            if sorted_content_imgs
+            else None
+        )
+
+        # Если не нашли по имени, используем первое изображение в папке (старое поведение)
+        if not preview:
+            imgs = sorted(
+                [
+                    f
+                    for f in os.listdir(playlist_dir)
+                    if f.lower().endswith((".jpg", ".jpeg", ".png", ".gif"))
+                ]
+            )
+            preview = (
+                url_for("static", filename=f"images/{playlist_name}/{imgs[0]}")
+                if imgs
+                else None
+            )
+        # --- КОНЕЦ ИЗМЕНЕНИЯ ---
+
+        # Получаем теги и name_rus из глобального comics_data
+        tags = "N/A"
+        display_name = content_name  # Имя по умолчанию
+        if content_name in comics_data:
+            comic_info = comics_data[content_name]
+            tags = comic_info.get("tags", "N/A")
+            display_name = comic_info.get(
+                "name_rus", content_name
+            )  # Используем name_rus, если есть
+
+        content_list.append(
+            {
+                "name": content_name,
+                "display_name": display_name,
+                "preview": preview,
+                "tags": tags,
+            }
+        )  # Передаём display_name
+
+    return render_template(
+        "playlist.html", playlist_name=playlist_name, contents=content_list
+    )
+
+
 # Новый маршрут для отображения конкретного комикса (content) внутри плейлиста
 @app.route("/comics/<playlist_name>/<content_name>")
 def show_comic_content(playlist_name, content_name):
