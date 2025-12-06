@@ -214,18 +214,37 @@ def show_playlist(playlist_name):
     content_names = playlists_data[playlist_name]
     content_list = []
     for content_name in content_names:
-        imgs = sorted(
-            [
-                f
-                for f in os.listdir(playlist_dir)
-                if f.lower().endswith((".jpg", ".jpeg", ".png", ".gif"))
-            ]
-        )
+        # Пытаемся найти изображение, начинающееся с имени контента
+        content_imgs = [
+            f
+            for f in os.listdir(playlist_dir)
+            if f.lower().startswith(content_name.lower())
+            and f.lower().endswith((".jpg", ".jpeg", ".png", ".gif"))
+        ]
+        sorted_content_imgs = sorted(content_imgs)
         preview = (
-            url_for("static", filename=f"images/{playlist_name}/{imgs[0]}")
-            if imgs
+            url_for(
+                "static", filename=f"images/{playlist_name}/{sorted_content_imgs[0]}"
+            )
+            if sorted_content_imgs
             else None
         )
+
+        # Если не нашли по имени, используем первое изображение в папке (старое поведение)
+        if not preview:
+            imgs = sorted(
+                [
+                    f
+                    for f in os.listdir(playlist_dir)
+                    if f.lower().endswith((".jpg", ".jpeg", ".png", ".gif"))
+                ]
+            )
+            preview = (
+                url_for("static", filename=f"images/{playlist_name}/{imgs[0]}")
+                if imgs
+                else None
+            )
+
         # Получаем теги из глобального comics_data
         tags = "N/A"
         if content_name in comics_data:
@@ -333,7 +352,7 @@ def search_comics():
     if not combined_results:
         message = f"Ничего не найдено по запросу '{query}'."
     else:
-        message = f"Результаты поиска по запросу '{query}' (тип: {search_type}):"
+        message = f"Результаты поиска по запросу '{query}':"
 
     # Возвращаем результаты в comics.html, указывая view_mode='search'
     # comics.html должен уметь отображать как плейлисты, так и отдельные комиксы
@@ -387,8 +406,16 @@ def show_comic_content(playlist_name, content_name):
 
     # Получаем теги из глобального comics_data
     tags = "N/A"
-    if content_name in comics_data:
-        tags = comics_data[content_name].get("tags", "N/A")
+    if (
+        content_name in comics_data
+    ):  # <-- Проверьте, что content_name совпадает с именем в data.xml
+        tags = comics_data[content_name].get(
+            "tags", "N/A"
+        )  # <-- Убедитесь, что ключ "tags" правильный
+    else:
+        print(
+            f"DEBUG: comic '{content_name}' not found in comics_data for show_comic_content"
+        )  # Временный дебаг
 
     # Считываем изображения из папки плейлиста
     imgs = sorted(
