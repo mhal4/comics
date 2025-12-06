@@ -40,20 +40,34 @@ def safe_extract(zip_path, dest_dir):
 
 # ---------- parse playlist ----------
 def parse_playlist(pl_path):
-    playlist_name = "default_playlist"
-    content_names = []
+    playlists_dict = {}
     try:
         tree = ET.parse(pl_path)
         root = tree.getroot()
-        playlist_name = root.get("name", "default_playlist")
-        for cont in root.findall(".//content"):
-            cname = cont.get("name")
-            if cname:
-                content_names.append(cname)
+
+        # Находим все элементы <playlist> на верхнем уровне или вложенные
+        # .//playlist найдёт все <playlist> в документе
+        # //playlist найдёт только верхнего уровня, если они есть
+        # Предположим, они могут быть вложены, используем .//playlist
+        playlist_elements = root.findall(".//playlist")
+        for plist_elem in playlist_elements:
+            plist_name = plist_elem.get(
+                "name", "unnamed_playlist"
+            )  # Используем имя плейлиста
+            content_names = []
+            for cont in plist_elem.findall(
+                ".//content"
+            ):  # Ищем content только внутри этого playlist
+                cname = cont.get("name")
+                if cname:
+                    content_names.append(cname)
+            playlists_dict[plist_name] = content_names
+
     except Exception as e:
-        print(f"Ошибка при парсинге плейлиста {pl_path}: {e}")  # Логируем ошибку
-        pass
-    return playlist_name, content_names
+        print(f"Ошибка при парсинге плейлиста {pl_path}: {e}")
+        # В случае ошибки возвращаем пустой словарь
+        return {}
+    return playlists_dict
 
 
 # ---------- parse comics ----------
@@ -127,36 +141,41 @@ def upload():
     comics_data = parse_comics(xml_path)
     logs = [f"Загружено комиксов из data.xml: {len(comics_data)}"]
 
-    # Чтение XML плейлистов
+    # Чтение XML плейлистов (обновлено)
     global playlists_data
-    playlist_name, content_names = parse_playlist(playlists_path)
-    playlists_data[playlist_name] = content_names
+    playlists_data = parse_playlist(playlists_path)  # Теперь возвращает словарь
+    logs.append(f"Загружено плейлистов: {len(playlists_data)}")
+    for name, content in playlists_data.items():
+        logs.append(f"  - '{name}': {', '.join(content)}")
+
+    # Создание папки для каждого плейлиста и копирование изображений
+    jpg_files_global = []  # Список всех JPG для информации
+    for playlist_name, content_names in playlists_data.items():
+        playlist_dir = os.path.join(IMAGE_ROOT, playlist_name)
+        os.makedirs(playlist_dir, exist_ok=True)
+
+        # Копирование изображений в папку конкретного плейлиста
+        # ВНИМАНИЕ: Это копирует ВСЕ изображения из ZIP в КАЖДУЮ папку плейлиста
+        # Если изображения уникальны для каждого комикса, нужно изменить логику копирования
+        # или хранить информацию о принадлежности файлов к комиксам
+        jpg_files_playlist = []
+        for rootp, _, files in os.walk(extract_dir):
+            for f in files:
+                if f.lower().endswith((".jpg", ".jpeg", ".png", ".gif")):
+                    dst_path = os.path.join(playlist_dir, f)
+                    # ВНИМАНИЕ: Если файл с таким именем уже есть, он будет перезаписан
+                    # Это может быть проблемой, если в разных плейлистах есть комиксы с одинаковыми именами файлов
+                    # Пока оставим так, но идеально - копировать только нужные файлы
+                    shutil.copy2(os.path.join(rootp, f), dst_path)
+                    jpg_files_playlist.append(f)
+        jpg_files_global.extend(jpg_files_playlist)
+        logs.append(
+            f"  - В плейлист '{playlist_name}' скопировано изображений: {len(jpg_files_playlist)}"
+        )
+
     logs.append(
-        f"Загружен плейлист '{playlist_name}' с контентом: {', '.join(content_names)}"
+        f"Всего изображений скопировано (включая дубликаты в разные плейлисты): {len(jpg_files_global)}"
     )
-
-    # Создание папки плейлиста
-    playlist_dir = os.path.join(IMAGE_ROOT, playlist_name)
-    os.makedirs(playlist_dir, exist_ok=True)
-
-    # Копирование изображений в папку плейлиста
-    jpg_files = []
-    for rootp, _, files in os.walk(extract_dir):
-        for f in files:
-            if f.lower().endswith(
-                (".jpg", ".jpeg", ".png", ".gif")
-            ):  # Добавим другие форматы, если нужно
-                dst_path = os.path.join(playlist_dir, f)
-                shutil.copy2(os.path.join(rootp, f), dst_path)
-                jpg_files.append(f)
-    logs.append(f"Скопировано изображений в '{playlist_name}': {len(jpg_files)}")
-
-    # Создание папки для каждого content внутри плейлиста (опционально, для структурирования)
-    # В новой логике этого не было, но мы можем создать структуру, где все изображения в корне папки плейлиста
-    # и отображение будет основано на data.xml и playlist.xml
-    # Для простоты оставим изображения в корне папки плейлиста
-    # В show_comic_content мы будем читать изображения из папки плейлиста
-    # И теги будем брать из глобального comics_data
 
     return render_template("result.html", logs=logs, files=list(playlists_data.keys()))
 
