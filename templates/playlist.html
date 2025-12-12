@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8" />
+        <title>{{ playlist_name }}</title>
+        <style>
+            body {
+                margin: 0;
+                font-family: "Segoe UI", Arial, sans-serif;
+                background: #f4f4f8;
+                padding: 20px;
+            }
+            h1 {
+                text-align: center;
+                margin-bottom: 30px;
+                color: #222;
+            }
+            .grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 20px;
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+            .card {
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                overflow: hidden;
+                text-align: center;
+                transition: transform 0.2s;
+                cursor: pointer;
+            }
+            .card:hover {
+                transform: scale(1.03);
+            }
+            .card img {
+                width: 100%;
+                height: 200px;
+                object-fit: cover;
+            }
+            a {
+                text-decoration: none;
+                color: inherit;
+            }
+            .back {
+                display: block;
+                text-align: center;
+                margin-bottom: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="back">
+            <a href="{{ url_for('index_page') }}"
+                >← Назад к списку плейлистов</a
+            >
+        </div>
+        <h1>Комиксы: {{ playlist_name }}</h1>
+        <div class="grid">
+            {% for content in contents %}
+            <a
+                href="{{ url_for('show_comic_content', playlist_name=playlist_name, content_name=content.name) }}"
+            >
+                <div class="card">
+                    {% if content.preview %}
+                    <img
+                        src="{{ content.preview }}"
+                        alt="{{ content.display_name }}"
+                    />
+                    {% else %}
+                    <div
+                        style="
+                            height: 200px;
+                            background: #ccc;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                        "
+                    >
+                        Нет превью
+                    </div>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </body>
+</html>

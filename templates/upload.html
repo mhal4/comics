@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Загрузка комиксов</title>
+        <style>
+            body {
+                font-family: sans-serif;
+                max-width: 600px;
+                margin: 40px auto;
+            }
+            form {
+                border: 1px solid #ccc;
+                padding: 20px;
+                border-radius: 8px;
+            }
+            input {
+                display: block;
+                margin: 10px 0;
+            }
+            label {
+                font-weight: bold;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Загрузка XML, архива и плейлистов</h1>
+        <form method="post" enctype="multipart/form-data" action="/upload">
+            <label>XML-файл с комиксами:</label>
+            <input type="file" name="xml" accept=".xml" required />
+
+            <label>ZIP с изображениями:</label>
+            <input type="file" name="zip" accept=".zip" required />
+
+            <label>XML-файл с плейлистами (опционально):</label>
+            <input type="file" name="playlists" accept=".xml" />
+
+            <button type="submit">Загрузить</button>
+        </form>
+    </body>
+</html>

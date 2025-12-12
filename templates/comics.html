@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Комиксы</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #f4f4f8;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px; /* Уменьшили отступ */
+            color: #222;
+        }
+        .search-container {
+            text-align: center;
+            margin-bottom: 30px; /* Отступ под поиском */
+        }
+        .search-container input[type="text"] {
+            padding: 10px;
+            width: 300px;
+            max-width: 90%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        .search-container select {
+            padding: 10px;
+            margin: 0 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        .search-container button {
+            padding: 10px 15px;
+            margin-left: 10px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .search-container button:hover {
+            background: #004c99;
+        }
+        .message {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            font-style: italic;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            overflow: hidden;
+            text-align: center;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .card:hover {
+            transform: scale(1.03);
+        }
+        .card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .card h2 {
+            margin: 10px 0;
+            font-size: 1.2rem;
+            color: #222;
+        }
+        /* .card p.tags { /* Убран стиль для тегов */
+        /*     margin: 5px 10px;
+            font-size: 0.85rem;
+            color: #666;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        } */
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+        .playlist-card a {
+            display: block; /* Чтобы весь карточка была кликабельной */
+        }
+        .comic-card a {
+            display: block; /* Чтобы весь карточка была кликабельной */
+        }
+    </style>
+</head>
+<body>
+
+<h1>Выберите плейлист</h1>
+
+<!-- Новый блок поиска -->
+<div class="search-container">
+    <form action="{{ url_for('search_comics') }}" method="get">
+        <input type="text" name="q" placeholder="Поиск по тегу, плейлисту или комиксу..." value="{{ search_query or '' }}">
+        <select name="type">
+            <option value="all" {% if not request.args.get('type') or request.args.get('type') == 'all' %}selected{% endif %}>Везде</option>
+            <option value="tag" {% if request.args.get('type') == 'tag' %}selected{% endif %}>По тегам</option>
+            <option value="playlist" {% if request.args.get('type') == 'playlist' %}selected{% endif %}>По плейлистам</option>
+            <option value="comic_name" {% if request.args.get('type') == 'comic_name' %}selected{% endif %}>По названию комикса</option>
+        </select>
+        <button type="submit">Найти</button>
+    </form>
+</div>
+
+<!-- Отображение сообщения о результатах поиска -->
+{% if message %}
+    <p class="message">{{ message }}</p>
+{% endif %}
+
+<div class="grid">
+    {% if view_mode == 'playlists' %}
+        {% for playlist in playlists %}
+            <div class="card playlist-card">
+                <a href="{{ url_for('show_playlist', playlist_name=playlist.name) }}">
+                    {% if playlist.preview %}
+                        <img src="{{ playlist.preview }}" alt="{{ playlist.name }}">
+                    {% else %}
+                        <div style="height:200px;background:#ccc;display:flex;align-items:center;justify-content:center;">Нет превью</div>
+                    {% endif %}
+                    <h2>{{ playlist.name }}</h2>
+                    <!-- {% if playlist.tags and playlist.tags != "N/A" %} /* Убрано отображение тегов */
+                        <p class="tags">{{ playlist.tags }}</p>
+                    {% endif %} -->
+                </a>
+            </div>
+        {% endfor %}
+    {% elif view_mode == 'search' %}
+        {% for item in comics %}
+            <div class="card {% if item.type == 'playlist' %}playlist-card{% elif item.type == 'comic' %}comic-card{% endif %}">
+                {% if item.type == 'playlist' %}
+                    <a href="{{ url_for('show_playlist', playlist_name=item.name) }}">
+                {% elif item.type == 'comic' %}
+                    <a href="{{ url_for('show_comic_content', playlist_name=item.playlist, content_name=item.name) }}">
+                {% endif %}
+                    {% if item.preview %}
+                        <img src="{{ item.preview }}" alt="{{ item.name }}">
+                    {% else %}
+                        <div style="height:200px;background:#ccc;display:flex;align-items:center;justify-content:center;">Нет превью</div>
+                    {% endif %}
+                    <h2>{% if item.type == 'comic' %}{{ item.display_name }}{% else %}{{ item.name }}{% endif %}</h2>
+                    <!-- {% if item.tags and item.tags != "N/A" %} /* Убрано отображение тегов */
+                        <p class="tags">{{ item.tags }}</p>
+                    {% endif %} -->
+                    {% if item.type == 'comic' %}
+                        <p style="font-size: 0.8rem; color: #888;">в плейлисте: {{ item.playlist }}</p>
+                    {% endif %}
+                </a>
+            </div>
+        {% endfor %}
+    {% endif %}
+</div>
+
+</body>
+</html>

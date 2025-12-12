@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Результат обработки</title>
+        <style>
+            body {
+                font-family: sans-serif;
+                max-width: 700px;
+                margin: 40px auto;
+            }
+            ul {
+                line-height: 1.6;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Результат обработки</h1>
+        <ul>
+            {% for line in logs %}
+            <li>{{ line }}</li>
+            {% endfor %}
+        </ul>
+        <a href="/">← Вернуться к загрузке</a>
+    </body>
+</html>
