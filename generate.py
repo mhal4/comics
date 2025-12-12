@@ -189,7 +189,7 @@ def old_comics_route():
 @app.route("/comics/<playlist_name>")
 def show_playlist(playlist_name):
     """Отображение содержимого конкретного плейлиста"""
-    if playlist_name not in playlists_
+    if playlist_name not in playlists_data:
         return "Плейлист не найден.", 404
 
     playlist_dir = os.path.join(IMAGE_ROOT, playlist_name)
